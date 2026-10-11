@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "select * from ctrl.table_config\nwhere source_system=@{pipeline().parameters.source_system}\nand is_active='True'",
+							"value": "select * from ctrl.table_config\nwhere source_system='@{pipeline().parameters.source_system}'\nand is_active='True'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -61,7 +61,7 @@
 							"typeProperties": {
 								"variableName": "test",
 								"value": {
-									"value": "@item().table_id",
+									"value": "@string(item().table_id)",
 									"type": "Expression"
 								}
 							}
