@@ -202,6 +202,10 @@
 		"parameters": {
 			"table_id": {
 				"type": "string"
+			},
+			"adf_run_id": {
+				"type": "string",
+				"defaultValue": "a1"
 			}
 		},
 		"variables": {
