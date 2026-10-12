@@ -184,7 +184,7 @@
 					"notebookPath": "/Care_Sync_repo/caresync-health-data-platform_databricks/landing_to_bronze",
 					"baseParameters": {
 						"table_name": {
-							"value": "@activity('Read_Tabel_details').output.firstRow.sliver_table_name",
+							"value": "@activity('Read_Tabel_details').output.firstRow.silver_table_name",
 							"type": "Expression"
 						},
 						"landing_timestamp": {
