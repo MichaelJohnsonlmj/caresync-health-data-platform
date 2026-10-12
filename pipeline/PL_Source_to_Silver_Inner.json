@@ -181,7 +181,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Care_Sync_repo/caresync-health-data-platform_databricks/landing_to_bronze",
+					"notebookPath": "/Care_Sync_repo/caresync-health-data-platform_databricks/bronze_to_sliver",
 					"baseParameters": {
 						"table_name": {
 							"value": "@activity('Read_Tabel_details').output.firstRow.silver_table_name",
