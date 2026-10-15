@@ -66,7 +66,7 @@
 				"typeProperties": {
 					"variableName": "new_watermark",
 					"value": {
-						"value": "@formatDateTime(utcNow(),'yyyy-MM-dd HH:mm:ss')",
+						"value": "@formatDateTime(utcNow(),'yyyy-MM-ddTHH:mm:ssZ')",
 						"type": "Expression"
 					}
 				}
@@ -151,6 +151,180 @@
 				}
 			},
 			{
+				"name": "check source system",
+				"type": "Switch",
+				"dependsOn": [
+					{
+						"activity": "check load type",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@activity('Read_Tabel_details').output.firstRow.source_system",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "neon_postgres",
+							"activities": [
+								{
+									"name": "source_to_landing_ingestion",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "PostgreSqlV2Source",
+											"query": {
+												"value": "SELECT * FROM @{activity('Read_Tabel_details').output.firstRow.source_table_name}\n@{\n    if(\n        equals(activity('Read_Tabel_details').output.firstRow.load_type, 'FULL'),\n        '',\n        concat(\n            ' WHERE ',\n            activity('Read_Tabel_details').output.firstRow.watermark_column,\n            ' > ',\n            '''',\n            variables('watermark_value'),\n            ''''\n        )\n    )\n}",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00"
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "PostgreSqlTable1",
+											"type": "DatasetReference"
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "Sink_parquet",
+											"type": "DatasetReference",
+											"parameters": {
+												"Container": "landing",
+												"Folder": {
+													"value": "@concat(activity('Read_Tabel_details').output.firstRow.source_system,'/',activity('Read_Tabel_details').output.firstRow.source_Table_Name,'/',variables('Start_time'))",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						},
+						{
+							"value": "adls_csv",
+							"activities": [
+								{
+									"name": "ingest csv from source to landing",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "BinarySource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false,
+												"modifiedDatetimeStart": {
+													"value": "@if(equals(activity('Read_Tabel_details').output.firstRow.load_type,'FULL'),'1900-01-01T00:00:00Z',variables('watermark_value'))",
+													"type": "Expression"
+												},
+												"modifiedDatetimeEnd": {
+													"value": "@variables('new_watermark')",
+													"type": "Expression"
+												},
+												"wildcardFileName": "*.csv",
+												"deleteFilesAfterCompletion": false
+											},
+											"formatSettings": {
+												"type": "BinaryReadSettings"
+											}
+										},
+										"sink": {
+											"type": "BinarySink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_csv_binary",
+											"type": "DatasetReference",
+											"parameters": {
+												"folder": {
+													"value": "@activity('Read_Tabel_details').output.firstRow.source_path",
+													"type": "Expression"
+												},
+												"container": "source"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_csv_binary",
+											"type": "DatasetReference",
+											"parameters": {
+												"folder": {
+													"value": "@concat(activity('Read_Tabel_details').output.firstRow.source_system,'/',activity('Read_Tabel_details').output.firstRow.source_Table_Name,'/',variables('Start_time'))",
+													"type": "Expression"
+												},
+												"container": "landing"
+											}
+										}
+									]
+								}
+							]
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "Fail_unknown_source",
+							"type": "Fail",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@concat('Unsupported source_system: ', activity('Read_Tabel_details').output.firstRow.source_system)",
+									"type": "Expression"
+								},
+								"errorCode": "UNKNOWN_SOURCE"
+							}
+						}
+					]
+				}
+			},
+			{
 				"name": "Landing_to_bronze",
 				"type": "DatabricksNotebook",
 				"dependsOn": [
@@ -185,7 +359,7 @@
 							"type": "Expression"
 						},
 						"source_file_format": {
-							"value": "@coalesce(activity('Read_Tabel_details').output.firstRow.source_file_format,'')",
+							"value": "@coalesce(activity('Read_Tabel_details').output.firstRow?.source_file_format,'parquet')",
 							"type": "Expression"
 						}
 					}
@@ -279,7 +453,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "update ctrl.watermark set watermark_value='@{variables('new_watermark')}'\nwhere table_id=@{pipeline().parameters.table_id};",
+											"value": "update ctrl.watermark set watermark_value='@{variables('new_watermark')}', last_updated_timestamp=SYSUTCDATETIME()\nwhere table_id=@{pipeline().parameters.table_id};",
 											"type": "Expression"
 										}
 									}
@@ -324,160 +498,6 @@
 						}
 					],
 					"scriptBlockExecutionTimeout": "02:00:00"
-				}
-			},
-			{
-				"name": "check source system",
-				"type": "Switch",
-				"dependsOn": [
-					{
-						"activity": "check load type",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"userProperties": [],
-				"typeProperties": {
-					"on": {
-						"value": "@activity('Read_Tabel_details').output.firstRow.source_system",
-						"type": "Expression"
-					},
-					"cases": [
-						{
-							"value": "neon_postgres",
-							"activities": [
-								{
-									"name": "source_to_landing_ingestion",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "PostgreSqlV2Source",
-											"query": {
-												"value": "SELECT * FROM @{activity('Read_Tabel_details').output.firstRow.source_table_name}\n@{\n    if(\n        equals(activity('Read_Tabel_details').output.firstRow.load_type, 'FULL'),\n        '',\n        concat(\n            ' WHERE ',\n            activity('Read_Tabel_details').output.firstRow.watermark_column,\n            ' > ',\n            '''',\n            variables('watermark_value'),\n            ''''\n        )\n    )\n}",
-												"type": "Expression"
-											},
-											"queryTimeout": "02:00:00"
-										},
-										"sink": {
-											"type": "ParquetSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "ParquetWriteSettings"
-											}
-										},
-										"enableStaging": false,
-										"translator": {
-											"type": "TabularTranslator",
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "PostgreSqlTable1",
-											"type": "DatasetReference"
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "Sink_parquet",
-											"type": "DatasetReference",
-											"parameters": {
-												"Container": "landing",
-												"Folder": {
-													"value": "@concat(\r\n   activity('Read_Tabel_details').output.firstRow.source_system,\r\n   '/',\r\n   activity('Read_Tabel_details').output.firstRow.source_Table_Name,\r\n    '/',\r\n    variables('Start_time')\r\n)",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								}
-							]
-						},
-						{
-							"value": "adls_csv",
-							"activities": [
-								{
-									"name": "ingest csv from source to landing",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "BinarySource",
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": false,
-												"modifiedDatetimeStart": {
-													"value": "@variables('watermark_value')",
-													"type": "Expression"
-												},
-												"deleteFilesAfterCompletion": false
-											},
-											"formatSettings": {
-												"type": "BinaryReadSettings"
-											}
-										},
-										"sink": {
-											"type": "BinarySink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											}
-										},
-										"enableStaging": false
-									},
-									"inputs": [
-										{
-											"referenceName": "ds_csv_binary",
-											"type": "DatasetReference",
-											"parameters": {
-												"folder": {
-													"value": "@activity('Read_Tabel_details').output.firstRow.source_path",
-													"type": "Expression"
-												},
-												"container": "source"
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "ds_csv_binary",
-											"type": "DatasetReference",
-											"parameters": {
-												"folder": {
-													"value": "@concat(\n   activity('Read_Tabel_details').output.firstRow.source_system,\n   '/',\n   activity('Read_Tabel_details').output.firstRow.source_Table_Name,\n    '/',\n    variables('Start_time')\n)",
-													"type": "Expression"
-												},
-												"container": "landing"
-											}
-										}
-									]
-								}
-							]
-						}
-					]
 				}
 			}
 		],
