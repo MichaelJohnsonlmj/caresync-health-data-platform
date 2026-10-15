@@ -340,7 +340,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"on": {
-						"value": "@activity('Read water_mark').output.firstRow.source_system",
+						"value": "@activity('Read_Tabel_details').output.firstRow.source_system",
 						"type": "Expression"
 					},
 					"cases": [
