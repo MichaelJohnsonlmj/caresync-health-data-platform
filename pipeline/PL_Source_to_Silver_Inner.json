@@ -185,7 +185,7 @@
 							"type": "Expression"
 						},
 						"source_file_format": {
-							"value": "@coalesce(activity('Read water_mark').output.firstRow.source_file_format,'')",
+							"value": "@coalesce(activity('Read_Tabel_details').output.firstRowsource_file_format,'')",
 							"type": "Expression"
 						}
 					}
