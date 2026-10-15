@@ -454,7 +454,7 @@
 											"type": "DatasetReference",
 											"parameters": {
 												"folder": {
-													"value": "@activity('Read water_mark').output.firstRow.source_path",
+													"value": "@activity('Read_Tabel_details').output.firstRow.source_path",
 													"type": "Expression"
 												},
 												"container": "source"
