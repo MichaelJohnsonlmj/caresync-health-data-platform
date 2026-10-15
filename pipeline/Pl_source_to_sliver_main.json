@@ -175,7 +175,7 @@
 		"parameters": {
 			"source_system": {
 				"type": "string",
-				"defaultValue": "neon_postgres"
+				"defaultValue": "adls_csv"
 			}
 		},
 		"annotations": []
