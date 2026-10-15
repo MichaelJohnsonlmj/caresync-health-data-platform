@@ -183,6 +183,10 @@
 						"landing_timestamp": {
 							"value": "@variables('Start_time')",
 							"type": "Expression"
+						},
+						"source_file_format": {
+							"value": "@coalesce(activity('Read water_mark').output.firstRow.source_file_format,'')",
+							"type": "Expression"
 						}
 					}
 				},
