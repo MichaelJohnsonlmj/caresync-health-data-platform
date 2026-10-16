@@ -86,7 +86,7 @@
 								{
 									"activity": "Silver to Gold",
 									"dependencyConditions": [
-										"Succeeded"
+										"Failed"
 									]
 								}
 							],
@@ -107,32 +107,12 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'FAILED',\n    end_time = SYSUTCDATETIME()\nWHERE adf_run_id = '@{pipeline().RunId}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SOURCE_TO_SILVER'\n  AND status = 'IN_PROGRESS';",
+											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'FAILED',\n    end_time = SYSUTCDATETIME()\nWHERE adf_run_id = '@{pipeline().RunId}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SILVER_TO_GOLD'\n  AND status = 'IN_PROGRESS';",
 											"type": "Expression"
 										}
 									}
 								],
 								"scriptBlockExecutionTimeout": "02:00:00"
-							}
-						},
-						{
-							"name": "Fail_table_ingest",
-							"type": "Fail",
-							"dependsOn": [
-								{
-									"activity": "update_failed_status",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"userProperties": [],
-							"typeProperties": {
-								"message": {
-									"value": "@concat('Ingestion failed for table_id ', string(item().table_id))",
-									"type": "Expression"
-								},
-								"errorCode": "INGEST_FAILED"
 							}
 						},
 						{
@@ -170,7 +150,7 @@
 							"type": "Script",
 							"dependsOn": [
 								{
-									"activity": "update_failed_status",
+									"activity": "Silver to Gold",
 									"dependencyConditions": [
 										"Succeeded"
 									]
