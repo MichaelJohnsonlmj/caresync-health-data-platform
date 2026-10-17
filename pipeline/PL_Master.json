@@ -17,11 +17,7 @@
 					},
 					"waitOnCompletion": true,
 					"parameters": {
-						"source_system": "neon_postgres",
-						"adf_run_id": {
-							"value": "@pipeline().RunId",
-							"type": "Expression"
-						}
+						"source_system": "neon_postgres"
 					}
 				}
 			},
@@ -40,11 +36,7 @@
 					},
 					"waitOnCompletion": true,
 					"parameters": {
-						"source_system": "adls_csv",
-						"adf_run_id": {
-							"value": "@pipeline().RunId",
-							"type": "Expression"
-						}
+						"source_system": "adls_csv"
 					}
 				}
 			},
@@ -74,13 +66,7 @@
 						"referenceName": "Pl_Silver_to_Gold",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true,
-					"parameters": {
-						"adf_run_id": {
-							"value": "@pipeline().RunId",
-							"type": "Expression"
-						}
-					}
+					"waitOnCompletion": true
 				}
 			},
 			{
