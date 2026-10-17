@@ -1,0 +1,12 @@
+{
+	"name": "adfv2caresync",
+	"properties": {
+		"globalParameters": {
+			"email_recipient": {
+				"type": "string",
+				"value": "michaelit2011@gmail.com"
+			}
+		}
+	},
+	"location": "centralindia"
+}
