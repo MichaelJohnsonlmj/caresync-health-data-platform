@@ -3,23 +3,25 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy data1",
-				"description": "This is change in description for test",
-				"type": "Copy",
+				"name": "CICD Variable",
+				"type": "SetVariable",
 				"dependsOn": [],
 				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
 					"secureOutput": false,
 					"secureInput": false
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"enableStaging": false
+					"variableName": "cicd",
+					"value": "cicd"
 				}
 			}
 		],
+		"variables": {
+			"cicd": {
+				"type": "String"
+			}
+		},
 		"annotations": []
 	}
 }
