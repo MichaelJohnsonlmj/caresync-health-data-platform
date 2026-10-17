@@ -1,1 +1,14 @@
-{}
+{
+	"email_recipient": {
+		"type": "string",
+		"value": "michaelit2011@gmail.com"
+	},
+	"env": {
+		"type": "string",
+		"value": "Dev"
+	},
+	"Logic_apps_url": {
+		"type": "string",
+		"value": "https://prod-23.centralindia.logic.azure.com:443/workflows/ea9b6a21503b46fc98f3562fb178f36f/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=BrN_B0jADCO7nBytfFwwt-_pcmGiW7LSPd4tmi3G-Cc"
+	}
+}

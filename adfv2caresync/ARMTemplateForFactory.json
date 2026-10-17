@@ -49,6 +49,39 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/CI_CD Test')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "CICD Variable",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "cicd",
+							"value": "cicd"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"cicd": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/PL_Master')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -1286,6 +1319,229 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Send_Email')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Read all table status",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select * from  ctrl.audit_log\nwhere  adf_run_id = '@{pipeline().parameters.adf_run_id}'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzureSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Prepare Email body",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Prepare Email header",
+							"value": "Ingestion and transfer process for Caresync project has been completed and below is the status"
+						}
+					},
+					{
+						"name": "Prepare Email Footer",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Prepare Email footer",
+							"value": "For any support reach out to abc@gamil.com"
+						}
+					},
+					{
+						"name": "Prepare Email Subject",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Check out all Fail Count",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Preapre Email Subject",
+							"value": {
+								"value": "@{pipeline().globalParameters.env} | @{if(greater(int(activity('Check out all Fail Count').output.firstRow.fail_count),0),'FAILED','SUCCESS')} | CARESYNC MASTER RUN",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Check out all Fail Count",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select count(*) as fail_count\nfrom ctrl.audit_log\nwhere adf_run_id = '@{pipeline().parameters.adf_run_id}'\n  and status != 'SUCCESS'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "AzureSqlTable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "Prepare logic app body",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Prepare Email Subject",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Prepare Email Footer",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Prepare Email body",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "Read all table status",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "prepare logic apps body",
+							"value": {
+								"value": "{\n  \"subject\": \"@{variables('Preapre Email Subject')}\",\n  \"email_recipients\": \"@{pipeline().globalParameters.email_recipient}\",\n  \"body_header\": \"@{variables('Prepare Email header')}\",\n  \"body_footer\": \"@{variables('Prepare Email footer')}\",\n  \"status_table\": @{activity('Read all table status').output.value}\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Send Email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Prepare logic app body",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {
+								"Conent-Type": "application/jason"
+							},
+							"url": {
+								"value": "@{pipeline().globalParameters.Logic_apps_url}",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "@{variables('prepare logic apps body')}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"adf_run_id": {
+						"type": "string",
+						"defaultValue": "907dfbb4-067b-496d-bebc-9c21c41816c6"
+					}
+				},
+				"variables": {
+					"Prepare Email header": {
+						"type": "String"
+					},
+					"Prepare Email footer": {
+						"type": "String"
+					},
+					"Preapre Email Subject": {
+						"type": "String"
+					},
+					"prepare logic apps body": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]"
+			]
 		}
 	]
 }
