@@ -17,7 +17,11 @@
 					},
 					"waitOnCompletion": true,
 					"parameters": {
-						"source_system": "neon_postgres"
+						"source_system": "neon_postgres",
+						"adf_run_id": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						}
 					}
 				}
 			},
@@ -36,7 +40,11 @@
 					},
 					"waitOnCompletion": true,
 					"parameters": {
-						"source_system": "adls_csv"
+						"source_system": "adls_csv",
+						"adf_run_id": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						}
 					}
 				}
 			},
@@ -66,7 +74,42 @@
 						"referenceName": "Pl_Silver_to_Gold",
 						"type": "PipelineReference"
 					},
-					"waitOnCompletion": true
+					"waitOnCompletion": true,
+					"parameters": {
+						"adf_run_id": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Send Email",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Silver to gold",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Send_Email",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"adf_run_id": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						}
+					}
 				}
 			}
 		],

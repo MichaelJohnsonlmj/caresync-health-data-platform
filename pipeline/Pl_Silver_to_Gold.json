@@ -71,43 +71,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "INSERT INTO ctrl.audit_log\n    (adf_run_id, table_id, stage, status, start_time)\nVALUES\n    ('@{pipeline().RunId}',\n     @{item().table_id},\n     'SILVER_TO_GOLD',\n     'IN_PROGRESS',\n     SYSUTCDATETIME());",
-											"type": "Expression"
-										}
-									}
-								],
-								"scriptBlockExecutionTimeout": "02:00:00"
-							}
-						},
-						{
-							"name": "update_failed_status",
-							"type": "Script",
-							"dependsOn": [
-								{
-									"activity": "Silver to Gold",
-									"dependencyConditions": [
-										"Failed"
-									]
-								}
-							],
-							"policy": {
-								"timeout": "0.12:00:00",
-								"retry": 0,
-								"retryIntervalInSeconds": 30,
-								"secureOutput": false,
-								"secureInput": false
-							},
-							"userProperties": [],
-							"linkedServiceName": {
-								"referenceName": "LS_AzureSqlDatabase",
-								"type": "LinkedServiceReference"
-							},
-							"typeProperties": {
-								"scripts": [
-									{
-										"type": "Query",
-										"text": {
-											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'FAILED',\n    end_time = SYSUTCDATETIME()\nWHERE adf_run_id = '@{pipeline().RunId}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SILVER_TO_GOLD'\n  AND status = 'IN_PROGRESS';",
+											"value": "INSERT INTO ctrl.audit_log\n    (adf_run_id, table_id, stage, status, start_time)\nVALUES\n    ('@{pipeline().parameters.adf_run_id}',\n     @{item().table_id},\n     'SILVER_TO_GOLD',\n     'IN_PROGRESS',\n     SYSUTCDATETIME());",
 											"type": "Expression"
 										}
 									}
@@ -173,18 +137,79 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'SUCCESS',\n    end_time = SYSUTCDATETIME(),\n    records_written = @{coalesce(activity('Silver to Gold').output?.runOutput, 0)}\nWHERE adf_run_id = '@{pipeline().RunId}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SILVER_TO_GOLD'\n  AND status = 'IN_PROGRESS';",
+											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'SUCCESS',\n    end_time = SYSUTCDATETIME(),\n    records_written = @{coalesce(activity('Silver to Gold').output?.runOutput, 0)}\nWHERE adf_run_id = '@{pipeline().parameters.adf_run_id}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SILVER_TO_GOLD'\n  AND status = 'IN_PROGRESS';",
 											"type": "Expression"
 										}
 									}
 								],
 								"scriptBlockExecutionTimeout": "02:00:00"
 							}
+						},
+						{
+							"name": "update_failed_status",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Silver to Gold",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LS_AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'FAILED',\n    end_time = SYSUTCDATETIME()\nWHERE adf_run_id = '@{pipeline().parameters.adf_run_id}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SILVER_TO_GOLD'\n  AND status = 'IN_PROGRESS';",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						},
+						{
+							"name": "Fail_gold_table",
+							"type": "Fail",
+							"dependsOn": [
+								{
+									"activity": "update_failed_status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"message": {
+									"value": "@concat('Gold load failed for table_id ', string(item().table_id))",
+									"type": "Expression"
+								},
+								"errorCode": "GOLD_FAILED"
+							}
 						}
 					]
 				}
 			}
 		],
+		"parameters": {
+			"adf_run_id": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }

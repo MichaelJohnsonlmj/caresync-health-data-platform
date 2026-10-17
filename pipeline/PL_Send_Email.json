@@ -60,30 +60,6 @@
 				}
 			},
 			{
-				"name": "Prepare Email Subject",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "Check out all Fail Count",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "Preapre Email Subject",
-					"value": {
-						"value": "@{pipeline().globalParameters.env} | @{if(greater(int(activity('Check out all Fail Count').output.firstRow.fail_count),0),'FAILED','SUCCESS')} | CARESYNC MASTER RUN",
-						"type": "Expression"
-					}
-				}
-			},
-			{
 				"name": "Check out all Fail Count",
 				"type": "Lookup",
 				"dependsOn": [],
@@ -108,6 +84,30 @@
 					"dataset": {
 						"referenceName": "AzureSqlTable1",
 						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Prepare Email Subject",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Check out all Fail Count",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Preapre Email Subject",
+					"value": {
+						"value": "@{pipeline().globalParameters.env} | @{if(greater(int(activity('Check out all Fail Count').output.firstRow.fail_count),0),'FAILED','SUCCESS')} | CARESYNC MASTER RUN",
+						"type": "Expression"
 					}
 				}
 			},
@@ -175,7 +175,7 @@
 				"typeProperties": {
 					"method": "POST",
 					"headers": {
-						"Conent-Type": "application/jason"
+						"Content-Type": "application/json"
 					},
 					"url": {
 						"value": "@{pipeline().globalParameters.Logic_apps_url}",
@@ -190,8 +190,7 @@
 		],
 		"parameters": {
 			"adf_run_id": {
-				"type": "string",
-				"defaultValue": "907dfbb4-067b-496d-bebc-9c21c41816c6"
+				"type": "string"
 			}
 		},
 		"variables": {

@@ -71,7 +71,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "INSERT INTO ctrl.audit_log\n    (adf_run_id, table_id, stage, status, start_time)\nVALUES\n    ('@{pipeline().RunId}',\n     @{item().table_id},\n     'SOURCE_TO_SILVER',\n     'IN_PROGRESS',\n     SYSUTCDATETIME());",
+											"value": "INSERT INTO ctrl.audit_log\n    (adf_run_id, table_id, stage, status, start_time)\nVALUES\n    ('@{pipeline().parameters.adf_run_id}',\n     @{item().table_id},\n     'SOURCE_TO_SILVER',\n     'IN_PROGRESS',\n     SYSUTCDATETIME());",
 											"type": "Expression"
 										}
 									}
@@ -106,7 +106,7 @@
 										"type": "Expression"
 									},
 									"adf_run_id": {
-										"value": "@pipeline().RunId",
+										"value": "@pipeline().parameters.adf_run_id",
 										"type": "Expression"
 									}
 								}
@@ -140,7 +140,7 @@
 									{
 										"type": "Query",
 										"text": {
-											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'FAILED',\n    end_time = SYSUTCDATETIME()\nWHERE adf_run_id = '@{pipeline().RunId}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SOURCE_TO_SILVER'\n  AND status = 'IN_PROGRESS';",
+											"value": "UPDATE ctrl.audit_log\nSET\n    status = 'FAILED',\n    end_time = SYSUTCDATETIME()\nWHERE adf_run_id = '@{pipeline().parameters.adf_run_id}'\n  AND table_id = @{item().table_id}\n  AND stage = 'SOURCE_TO_SILVER'\n  AND status = 'IN_PROGRESS';",
 											"type": "Expression"
 										}
 									}
@@ -153,9 +153,9 @@
 							"type": "Fail",
 							"dependsOn": [
 								{
-									"activity": "Ingest_from_source_to_silver",
+									"activity": "update_failed_status",
 									"dependencyConditions": [
-										"Failed"
+										"Succeeded"
 									]
 								}
 							],
@@ -176,6 +176,9 @@
 			"source_system": {
 				"type": "string",
 				"defaultValue": "adls_csv"
+			},
+			"adf_run_id": {
+				"type": "string"
 			}
 		},
 		"annotations": []
