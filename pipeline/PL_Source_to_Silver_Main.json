@@ -153,9 +153,9 @@
 							"type": "Fail",
 							"dependsOn": [
 								{
-									"activity": "update_failed_status",
+									"activity": "Ingest_from_source_to_silver",
 									"dependencyConditions": [
-										"Succeeded"
+										"Failed"
 									]
 								}
 							],
